@@ -12,6 +12,13 @@ from sqlalchemy.orm import DeclarativeBase
 from app.core.config import settings
 
 
+import ssl
+
+# Crear un contexto SSL que no verifique los certificados para evitar el error de Render/Supabase
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
@@ -20,7 +27,7 @@ engine = create_async_engine(
     pool_pre_ping=True,  # Detect stale connections
     connect_args={
         "command_timeout": 10,
-        "ssl": True,  # Reemplaza sslmode='require' para asyncpg
+        "ssl": ssl_context,  # Usamos el contexto para ignorar la verificación
         "server_settings": {
             "tcp_user_timeout": "10000" # 10 seconds in ms
         }
