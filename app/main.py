@@ -28,14 +28,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     
     # Auto-create tables if they don't exist (Supabase/PostGIS)
     try:
-        print("🛠️  Creando tablas en la base de datos...")
+        print("🛠️  Intentando conectar con la base de datos...")
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         print("✅ Tablas sincronizadas correctamente.")
     except Exception as e:
-        print(f"❌ Error crítico en Base.metadata.create_all: {e}")
-        # No relanzamos aquí si queremos que el proceso de build/salud no muera instantáneamente 
-        # pero es mejor saber el error exacto.
+        print(f"❌ ERROR DE CONEXIÓN A DB: {e}")
+        print("⚠️  El servidor continuará ejecutándose para permitir el acceso al frontend y diagnóstico de red.")
         
     print(
         f"🚀 LogiCore SaaS starting up | ENV={settings.APP_ENV} | DEBUG={settings.DEBUG}"
