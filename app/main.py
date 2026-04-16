@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from app.models.user import User
     from app.models.vehicle import Vehicle
     from app.models.order import Order
-    from app.models.tracking_events import TrackingEvent
+    from app.models.tracking import TrackingEvent
     from app.models.proof_of_delivery import ProofOfDelivery
     
     # Auto-create tables if they don't exist (Supabase/PostGIS)
