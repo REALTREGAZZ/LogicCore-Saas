@@ -93,28 +93,37 @@ async def login(
     body: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
-    result = await db.execute(select(User).where(User.email == body.email))
-    user: User | None = result.scalar_one_or_none()
+    try:
+        result = await db.execute(select(User).where(User.email == body.email))
+        user: User | None = result.scalar_one_or_none()
 
-    if user is None or not verify_password(body.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password.",
-        )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is deactivated.",
-        )
+        if user is None or not verify_password(body.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password.",
+            )
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is deactivated.",
+            )
 
-    token = create_access_token(
-        subject=str(user.id),
-        tenant_id=user.tenant_id,
-        role=user.role,
-    )
-    return TokenResponse(
-        access_token=token,
-        user_id=user.id,
-        tenant_id=user.tenant_id,
-        role=user.role,
-    )
+        token = create_access_token(
+            subject=str(user.id),
+            tenant_id=user.tenant_id,
+            role=user.role,
+        )
+        return TokenResponse(
+            access_token=token,
+            user_id=user.id,
+            tenant_id=user.tenant_id,
+            role=user.role,
+        )
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        print(f"Error en login: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error en login: {str(e)}"
+        )

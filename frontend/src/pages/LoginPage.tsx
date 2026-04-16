@@ -48,7 +48,17 @@ const LoginPage: React.FC = () => {
             }
             navigate('/');
         } catch (err: any) {
-            setError(err.response?.data?.detail || 'Algo salió mal. Inténtalo de nuevo.');
+            const detail = err.response?.data?.detail;
+            if (typeof detail === 'string') {
+                setError(detail);
+            } else if (Array.isArray(detail)) {
+                // Si es un error de validación de FastAPI (Pydantic), tomamos el primer mensaje
+                setError(detail[0]?.msg || 'Error de validación en los datos.');
+            } else if (detail && typeof detail === 'object') {
+                setError(detail.message || JSON.stringify(detail));
+            } else {
+                setError('Algo salió mal. Inténtalo de nuevo.');
+            }
         } finally {
             setLoading(false);
         }
