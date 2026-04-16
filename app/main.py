@@ -18,9 +18,24 @@ from app.core.config import settings
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan — run DB startup checks here."""
     from app.core.database import engine, Base
+    # Imprescindible importar los modelos para que Base.metadata los registre
+    from app.models.tenant import Tenant
+    from app.models.user import User
+    from app.models.vehicle import Vehicle
+    from app.models.order import Order
+    from app.models.tracking_events import TrackingEvent
+    from app.models.proof_of_delivery import ProofOfDelivery
+    
     # Auto-create tables if they don't exist (Supabase/PostGIS)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        print("🛠️  Creando tablas en la base de datos...")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("✅ Tablas sincronizadas correctamente.")
+    except Exception as e:
+        print(f"❌ Error crítico en Base.metadata.create_all: {e}")
+        # No relanzamos aquí si queremos que el proceso de build/salud no muera instantáneamente 
+        # pero es mejor saber el error exacto.
         
     print(
         f"🚀 LogiCore SaaS starting up | ENV={settings.APP_ENV} | DEBUG={settings.DEBUG}"
