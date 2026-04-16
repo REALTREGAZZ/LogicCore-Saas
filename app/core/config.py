@@ -31,12 +31,7 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     """Cached singleton — reads .env once per process life."""
-    s = Settings()
-    # Forzar sslmode=require para Supabase si no está presente
-    if s.DATABASE_URL and "sslmode=" not in s.DATABASE_URL:
-        separator = "&" if "?" in s.DATABASE_URL else "?"
-        s.DATABASE_URL += f"{separator}sslmode=require"
-    return s
+    return Settings()
 
 
 settings = get_settings()

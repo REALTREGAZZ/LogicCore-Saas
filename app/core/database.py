@@ -20,6 +20,7 @@ engine = create_async_engine(
     pool_pre_ping=True,  # Detect stale connections
     connect_args={
         "command_timeout": 10,
+        "ssl": True,  # Reemplaza sslmode='require' para asyncpg
         "server_settings": {
             "tcp_user_timeout": "10000" # 10 seconds in ms
         }
