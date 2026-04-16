@@ -1,124 +1,168 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
-import Map from '../components/Map';
-import { trackingApi } from '../api/tracking';
-import { ordersApi } from '../api/orders';
-import { useWebSocket } from '../hooks/useWebSocket';
+import Map, { TruckData } from '../components/Map';
+import { searchAddress } from '../api/LogisticsService';
+import WeatherCard from '../components/WeatherCard';
 import {
-    Users,
-    Package,
-    CheckCircle2,
-    AlertCircle,
-    TrendingUp
+    Search,
+    Loader2,
+    Activity,
+    ShieldCheck,
+    Navigation,
+    Truck as TruckIcon
 } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
-    const [drivers, setDrivers] = useState<any[]>([]);
-    const [stats, setStats] = useState({
-        total: 0,
-        delivered: 0,
-        transit: 0,
-        incidents: 0
-    });
+    // 1. Estado de la Flota (3 camiones)
+    const [trucks, setTrucks] = useState<TruckData[]>([
+        { id: 'camion-1', nombre: 'Roberto Gómez', lat: 40.4168, lng: -3.7038, cargo: '85%', estado: 'En Ruta' },
+        { id: 'camion-2', nombre: 'Lucía Fernández', lat: 40.4500, lng: -3.6800, cargo: '40%', estado: 'En Ruta' },
+        { id: 'camion-3', nombre: 'Marcos Ruiz', lat: 40.3800, lng: -3.7200, cargo: '100%', estado: 'En Ruta' },
+    ]);
 
-    const fetchData = async () => {
+    // 2. Estado de búsqueda y ubicación
+    const [searchValue, setSearchValue] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [targetLocation, setTargetLocation] = useState<[number, number] | null>(null);
+
+    // 3. Simulación de movimiento cada 3 segundos
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setTrucks((current) => current.map(t => ({
+                ...t,
+                lat: t.lat + (Math.random() - 0.5) * 0.005,
+                lng: t.lng + (Math.random() - 0.5) * 0.005,
+            })));
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchValue.trim()) return;
+
+        setIsSearching(true);
         try {
-            const positions = await trackingApi.getLivePositions();
-            setDrivers(positions);
-
-            const orders = await ordersApi.list();
-            setStats({
-                total: orders.length,
-                delivered: orders.filter((o: any) => o.status === 'delivered').length,
-                transit: orders.filter((o: any) => o.status === 'in_transit').length,
-                incidents: orders.filter((o: any) => o.status === 'incident').length
-            });
+            const result = await searchAddress(searchValue);
+            if (result) {
+                setTargetLocation([result.latitude, result.longitude]);
+            }
         } catch (err) {
-            console.error("Dashboard data fetch failed", err);
+            console.error("Error buscando dirección", err);
+        } finally {
+            setIsSearching(false);
         }
     };
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    // Handle incoming real-time GPS updates from WebSocket
-    useWebSocket((data) => {
-        if (data.type === 'gps_update') {
-            setDrivers(prev => {
-                const index = prev.findIndex(d => d.driver_id === data.driver_id);
-                if (index !== -1) {
-                    const updated = [...prev];
-                    updated[index] = { ...updated[index], ...data };
-                    return updated;
-                }
-                return [...prev, data];
-            });
-        }
-    });
-
     return (
         <Layout>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <StatCard title="Total Pedidos" value={stats.total} icon={<Package className="text-primary" />} trend="+12%" />
-                <StatCard title="En Tránsito" value={stats.transit} icon={<TrendingUp className="text-blue-400" />} trend="86%" />
-                <StatCard title="Entregados" value={stats.delivered} icon={<CheckCircle2 className="text-success" />} trend="94%" />
-                <StatCard title="Incidencias" value={stats.incidents} icon={<AlertCircle className="text-accent" />} trend="0%" />
+            {/* Header / Search Bar */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10">
+                <div className="animate-in fade-in slide-in-from-left duration-700">
+                    <h1 className="text-4xl font-extrabold tracking-tight text-white mb-2">
+                        LogiCore <span className="text-primary italic">Live</span>
+                    </h1>
+                    <p className="text-slate-400 font-medium">Panel de Control de Flota y Tracking en Tiempo Real</p>
+                </div>
+
+                <form
+                    onSubmit={handleSearch}
+                    className="relative w-full lg:w-[450px] group animate-in fade-in slide-in-from-right duration-700"
+                >
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Search className="h-5 w-5 text-slate-500 group-focus-within:text-primary transition-colors" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Buscar dirección para centrar el mapa..."
+                        className="input h-14 pl-12 pr-12 text-md bg-white/5 border-white/10 hover:border-white/20 focus:border-primary/50 transition-all rounded-2xl w-full"
+                        value={searchValue}
+                        onChange={(e) => setSearchValue(e.target.value)}
+                    />
+                    {isSearching && (
+                        <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+                            <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                        </div>
+                    )}
+                </form>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 card p-0 overflow-hidden min-h-[500px]">
-                    <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
-                        <h3 className="font-bold flex items-center gap-2">
-                            <Users size={20} className="text-primary" />
-                            Tracking de Flota en Tiempo Real
-                        </h3>
-                        <span className="flex items-center gap-2 text-xs font-bold text-success bg-success/10 px-3 py-1 rounded-full border border-success/20 animate-pulse">
-                            LIVE
-                        </span>
+            {/* Main Dashboard Layout */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+
+                {/* Left Column: Stats & Fleet Info */}
+                <div className="xl:col-span-1 space-y-6 animate-in fade-in slide-in-from-bottom duration-700 delay-150">
+
+                    {/* Clima */}
+                    <WeatherCard
+                        lat={targetLocation ? targetLocation[0] : 40.4168}
+                        lon={targetLocation ? targetLocation[1] : -3.7038}
+                    />
+
+                    {/* Resumen Flota */}
+                    <div className="glass p-6 rounded-3xl border border-white/5">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-primary/20 rounded-xl text-primary">
+                                <Activity size={20} />
+                            </div>
+                            <h3 className="font-bold text-white text-lg">Estado de Flota</h3>
+                        </div>
+
+                        <div className="space-y-4">
+                            {trucks.map(truck => (
+                                <div key={truck.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/[0.08] transition-all cursor-pointer group">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-slate-800 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                                <TruckIcon size={18} className="text-slate-400 group-hover:text-primary" />
+                                            </div>
+                                            <p className="font-bold text-sm text-slate-200">{truck.nombre}</p>
+                                        </div>
+                                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-500/20 uppercase tracking-tighter">
+                                            {truck.estado}
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                        <div
+                                            className="bg-primary h-full transition-all duration-500"
+                                            style={{ width: truck.carga }}
+                                        ></div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-2 font-medium">Carga Operativa: {truck.carga}</p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    <div className="h-[436px]">
-                        <Map drivers={drivers} />
+
+                    {/* Security Info */}
+                    <div className="p-6 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-4">
+                        <ShieldCheck size={32} className="text-emerald-500" />
+                        <div>
+                            <p className="text-sm font-bold text-slate-200 text-emerald-500">Sistema Protegido</p>
+                            <p className="text-xs text-slate-400">Canal de datos encriptado AES-256</p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="card space-y-6">
-                    <h3 className="font-bold border-b border-white/5 pb-4">Actividad Reciente</h3>
-                    <div className="space-y-4">
-                        {drivers.slice(0, 5).map(d => (
-                            <div key={d.driver_id} className="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/5">
-                                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                                    {d.driver_id[0]}
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium">Driver {d.driver_id.split('-')[0]}</p>
-                                    <p className="text-xs text-text-muted">Velocidad: {d.speed_kmh?.toFixed(1) || 0} km/h</p>
-                                </div>
-                            </div>
-                        ))}
-                        {drivers.length === 0 && (
-                            <div className="text-center py-8 text-text-muted italic">
-                                No hay conductores activos
-                            </div>
-                        )}
+                {/* Right Column: Interactive Map */}
+                <div className="xl:col-span-3 h-[650px] animate-in fade-in slide-in-from-bottom duration-1000 delay-300">
+                    <div className="h-full relative overflow-hidden rounded-3xl border border-white/10 group">
+                        <Map trucks={trucks} targetLocation={targetLocation} />
+
+                        {/* Overlay Map Info */}
+                        <div className="absolute top-6 right-6 z-[1000] glass px-4 py-2 rounded-xl flex items-center gap-2 pointer-events-none">
+                            <Navigation size={14} className="text-primary animate-pulse" />
+                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                                40.41N, 03.70W &bull; Live Sensors
+                            </span>
+                        </div>
                     </div>
                 </div>
+
             </div>
         </Layout>
     );
 };
-
-const StatCard: React.FC<{ title: string; value: number | string; icon: React.ReactNode; trend: string }> = ({ title, value, icon, trend }) => (
-    <div className="card group hover:border-primary/30 transition-all hover:bg-white/5">
-        <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-primary/20 transition-all text-2xl">
-                {icon}
-            </div>
-            <span className="text-xs font-bold px-2 py-1 bg-white/5 rounded-lg text-text-muted">{trend}</span>
-        </div>
-        <p className="text-text-muted font-medium text-sm">{title}</p>
-        <h4 className="text-3xl font-bold mt-1">{value}</h4>
-    </div>
-);
 
 export default DashboardPage;

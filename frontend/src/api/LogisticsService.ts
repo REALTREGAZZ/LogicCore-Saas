@@ -26,7 +26,7 @@ export const calculateHaversineDistance = (
 };
 
 // Geocodificación gratuita con OpenStreetMap (Nominatim)
-export const geocodeAddress = async (address: string) => {
+export const searchAddress = async (address: string) => {
     try {
         const response = await axios.get(
             `https://nominatim.openstreetmap.org/search`,
@@ -81,7 +81,7 @@ export const getWeather = async (lat: number, lon: number, apiKey: string) => {
 
 const LogisticsService = {
     calculateHaversineDistance,
-    geocodeAddress,
+    searchAddress,
     getWeather,
 };
 
