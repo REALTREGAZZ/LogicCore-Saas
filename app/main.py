@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         print("🛠️  Intentando conectar con la base de datos...")
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        print("✅ Tablas sincronizadas correctamente.")
+        print("✅ Base de datos preparada con éxito")
     except Exception as e:
         print(f"❌ ERROR DE CONEXIÓN A DB: {e}")
         print("⚠️  El servidor continuará ejecutándose para permitir el acceso al frontend y diagnóstico de red.")
