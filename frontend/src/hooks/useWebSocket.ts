@@ -10,8 +10,7 @@ export const useWebSocket = (onMessage: (data: any) => void) => {
         if (!token || !user) return;
 
         const tenantId = user.tenant_id;
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//localhost:8000/api/v1/ws/dispatch/${tenantId}?token=${token}`;
+        const wsUrl = `wss://logicore-backend-8qno.onrender.com/api/v1/ws/dispatch/${tenantId}?token=${token}`;
 
         const connect = () => {
             console.log('Connecting to WebSocket...', wsUrl);

@@ -44,11 +44,10 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
     )
 
-    # ── CORS ─────────────────────────────────────────────────────────────────
-    # Restrict to your actual frontend domains in production
+    # ── CORS (TOTAL OPEN CONFIGURATION) ──────────────────────────────────────
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if settings.DEBUG else ["https://app.logicore.io"],
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

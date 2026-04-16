@@ -1,16 +1,16 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_URL = 'https://logicore-backend-8qno.onrender.com';
 
 const apiClient = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: `${API_URL}/api/v1`,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Inject JWT token into every request
-apiClient.interceptors.request.use((config) => {
+// Interceptor de peticiones con tipos : any para evitar bloqueos de TS
+apiClient.interceptors.request.use((config: any) => {
     const token = localStorage.getItem('token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -18,10 +18,10 @@ apiClient.interceptors.request.use((config) => {
     return config;
 });
 
-// Handle 401 Unauthorized globally
+// Interceptor de respuestas con tipos : any para despliegue en Vercel
 apiClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
+    (response: any) => response,
+    (error: any) => {
         if (error.response?.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
@@ -34,4 +34,4 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-export { API_BASE_URL };
+export { API_URL };

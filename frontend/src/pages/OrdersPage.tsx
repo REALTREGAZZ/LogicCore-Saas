@@ -12,7 +12,6 @@ import {
     Send,
     Loader2
 } from 'lucide-react';
-import { API_BASE_URL } from '../api/client';
 
 const OrdersPage: React.FC = () => {
     const [orders, setOrders] = useState<any[]>([]);
