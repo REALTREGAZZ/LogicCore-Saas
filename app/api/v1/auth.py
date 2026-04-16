@@ -28,53 +28,60 @@ async def register_tenant(
     body: TenantCreate,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
-    # Check slug uniqueness
-    existing = await db.execute(
-        select(Tenant).where(Tenant.slug == body.company_slug)
-    )
-    if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Company slug '{body.company_slug}' is already taken.",
+    try:
+        # Check slug uniqueness
+        existing = await db.execute(
+            select(Tenant).where(Tenant.slug == body.company_slug)
         )
+        if existing.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Company slug '{body.company_slug}' is already taken.",
+            )
 
-    # Check email uniqueness
-    existing_user = await db.execute(
-        select(User).where(User.email == body.admin_email)
-    )
-    if existing_user.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email address is already registered.",
+        # Check email uniqueness
+        existing_user = await db.execute(
+            select(User).where(User.email == body.admin_email)
         )
+        if existing_user.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email address is already registered.",
+            )
 
-    # Create tenant
-    tenant = Tenant(name=body.company_name, slug=body.company_slug)
-    db.add(tenant)
-    await db.flush()  # Get tenant.id before creating the user
+        # Create tenant
+        tenant = Tenant(name=body.company_name, slug=body.company_slug)
+        db.add(tenant)
+        await db.flush()  # Get tenant.id before creating the user
 
-    # Create first dispatcher
-    user = User(
-        tenant_id=tenant.id,
-        email=body.admin_email,
-        hashed_password=get_password_hash(body.admin_password),
-        full_name=body.admin_full_name,
-        role="dispatcher",
-    )
-    db.add(user)
-    await db.flush()
+        # Create first dispatcher
+        user = User(
+            tenant_id=tenant.id,
+            email=body.admin_email,
+            hashed_password=get_password_hash(body.admin_password),
+            full_name=body.admin_full_name,
+            role="dispatcher",
+        )
+        db.add(user)
+        await db.flush()
 
-    token = create_access_token(
-        subject=str(user.id),
-        tenant_id=tenant.id,
-        role=user.role,
-    )
-    return TokenResponse(
-        access_token=token,
-        user_id=user.id,
-        tenant_id=tenant.id,
-        role=user.role,
-    )
+        token = create_access_token(
+            subject=str(user.id),
+            tenant_id=tenant.id,
+            role=user.role,
+        )
+        return TokenResponse(
+            access_token=token,
+            user_id=user.id,
+            tenant_id=tenant.id,
+            role=user.role,
+        )
+    except Exception as e:
+        print(f"Error detallado en /register: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error en el registro: {str(e)}"
+        )
 
 
 @router.post(

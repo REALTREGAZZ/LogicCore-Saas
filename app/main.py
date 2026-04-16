@@ -16,7 +16,12 @@ from app.core.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Application lifespan — run DB startup checks here if needed."""
+    """Application lifespan — run DB startup checks here."""
+    from app.core.database import engine, Base
+    # Auto-create tables if they don't exist (Supabase/PostGIS)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        
     print(
         f"🚀 LogiCore SaaS starting up | ENV={settings.APP_ENV} | DEBUG={settings.DEBUG}"
     )
