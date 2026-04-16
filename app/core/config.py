@@ -31,7 +31,13 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     """Cached singleton — reads .env once per process life."""
-    return Settings()
+    s = Settings()
+    # Asegurar que use el driver asyncpg
+    if s.DATABASE_URL.startswith("postgres://"):
+        s.DATABASE_URL = s.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif s.DATABASE_URL.startswith("postgresql://") and "+asyncpg" not in s.DATABASE_URL:
+        s.DATABASE_URL = s.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return s
 
 
 settings = get_settings()
