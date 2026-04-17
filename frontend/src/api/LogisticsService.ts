@@ -53,23 +53,26 @@ export const searchAddress = async (address: string) => {
     }
 };
 
-// Integración con WeatherStack API
-export const getWeather = async (lat: number, lon: number, apiKey: string) => {
+// Integración con Open-Meteo API (Gratuita, sin API Key)
+export const getWeather = async (lat: number, lon: number) => {
     try {
-        const response = await axios.get(`http://api.weatherstack.com/current`, {
+        const response = await axios.get(`https://api.open-meteo.com/v1/forecast`, {
             params: {
-                access_key: apiKey,
-                query: `${lat},${lon}`,
+                latitude: lat,
+                longitude: lon,
+                current_weather: true,
             },
         });
 
-        if (response.data && response.data.current) {
+        if (response.data && response.data.current_weather) {
+            const current = response.data.current_weather;
             return {
-                temperature: response.data.current.temperature,
-                description: response.data.current.weather_descriptions[0],
-                icon: response.data.current.weather_icons[0],
-                humidity: response.data.current.humidity,
-                windSpeed: response.data.current.wind_speed,
+                temperature: current.temperature,
+                description: getWeatherDescription(current.weathercode),
+                weatherCode: current.weathercode,
+                icon: null,
+                humidity: null,
+                windSpeed: current.windspeed,
             };
         }
         return null;
@@ -77,6 +80,21 @@ export const getWeather = async (lat: number, lon: number, apiKey: string) => {
         console.error('Error al obtener el clima:', error);
         throw error;
     }
+};
+
+// Traducción de códigos WMO de Open-Meteo
+const getWeatherDescription = (code: number): string => {
+    const codes: Record<number, string> = {
+        0: 'Cielo despejado',
+        1: 'Principalmente despejado', 2: 'Parcialmente nublado', 3: 'Nublado',
+        45: 'Niebla', 48: 'Niebla de escarcha',
+        51: 'Llovizna ligera', 53: 'Llovizna moderada', 55: 'Llovizna densa',
+        61: 'Lluvia ligera', 63: 'Lluvia moderada', 65: 'Lluvia fuerte',
+        71: 'Nieve ligera', 73: 'Nieve moderada', 75: 'Nieve fuerte',
+        80: 'Chubascos ligeros', 81: 'Chubascos moderados', 82: 'Chubascos violentos',
+        95: 'Tormenta', 96: 'Tormenta con granizo ligero', 99: 'Tormenta con granizo fuerte',
+    };
+    return codes[code] || 'Clima variable';
 };
 
 const LogisticsService = {

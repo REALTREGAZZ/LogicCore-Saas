@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Cloud, Thermometer, Wind, Droplets, Loader2, AlertCircle } from 'lucide-react';
+import { Cloud, Wind, Droplets, Loader2, AlertCircle } from 'lucide-react';
 import { getWeather } from '../api/LogisticsService';
 
 interface WeatherData {
@@ -20,17 +20,12 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ lat, lon }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
 
-    // Reemplaza esto con tu API Key real de WeatherStack
-    const WEATHERSTACK_API_KEY = '';
-
     useEffect(() => {
-        if (!WEATHERSTACK_API_KEY) return;
-
         const fetchWeather = async () => {
             setLoading(true);
             setError(false);
             try {
-                const data = await getWeather(lat, lon, WEATHERSTACK_API_KEY);
+                const data = await getWeather(lat, lon);
                 setWeather(data);
             } catch (err) {
                 console.error("Error fetching weather", err);
@@ -42,15 +37,6 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ lat, lon }) => {
 
         fetchWeather();
     }, [lat, lon]);
-
-    if (!WEATHERSTACK_API_KEY) {
-        return (
-            <div className="bg-white/5 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-                <Cloud size={32} className="text-text-muted mb-2 animate-bounce" />
-                <p className="text-sm font-medium text-text-muted">Configura WEATHERSTACK_API_KEY para ver el clima en tiempo real.</p>
-            </div>
-        );
-    }
 
     if (loading) {
         return (
@@ -77,15 +63,19 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ lat, lon }) => {
                     <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Clima actual</h4>
                     <p className="text-sm font-medium">{weather.description}</p>
                 </div>
-                <img src={weather.icon} alt="weather icon" className="w-12 h-12 rounded-lg" />
+                <div className="bg-primary/10 p-2 rounded-xl text-primary">
+                    <Cloud size={24} />
+                </div>
             </div>
 
             <div className="flex items-center gap-4 mb-6">
                 <div className="text-4xl font-bold">{weather.temperature}°C</div>
                 <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1 text-xs text-text-muted">
-                        <Droplets size={12} /> {weather.humidity}%
-                    </div>
+                    {weather.humidity !== null && (
+                        <div className="flex items-center gap-1 text-xs text-text-muted">
+                            <Droplets size={12} /> {weather.humidity}%
+                        </div>
+                    )}
                     <div className="flex items-center gap-1 text-xs text-text-muted">
                         <Wind size={12} /> {weather.windSpeed} km/h
                     </div>
@@ -95,7 +85,7 @@ const WeatherCard: React.FC<WeatherCardProps> = ({ lat, lon }) => {
             <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
                 <div
                     className="bg-primary h-full transition-all duration-1000"
-                    style={{ width: `${(weather.temperature / 45) * 100}%` }}
+                    style={{ width: `${Math.min(Math.max((weather.temperature / 45) * 100, 0), 100)}%` }}
                 ></div>
             </div>
         </div>
